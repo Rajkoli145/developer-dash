@@ -1,0 +1,22 @@
+node_modules
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
+
+# local data
+prisma/dev.db
+prisma/dev.db-journal
+prisma/dev.db-wal
+prisma/dev.db-shm
+.data
+
+# uploads (keep the folder via .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
+# env — commit .env.example only
+.env
+.env.local
+.env.*.local
+.freebuff/

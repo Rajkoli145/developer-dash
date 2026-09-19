@@ -1,0 +1,327 @@
+// DevContext — project intelligence schema
+// SQLite for development; PostgreSQL-ready (no SQLite-only features, no JSON arrays)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   @default("OWNER") // OWNER | MEMBER
+  createdAt DateTime @default(now())
+
+  projects      ProjectMember[]
+  tasks         Task[]
+  activities    Activity[]
+  documents     Document[]
+  prompts       Prompt[]
+  handoffs      Handoff[]
+  assignedTasks Task[] @relation("TaskAssignee")
+}
+
+model Project {
+  id             String    @id @default(cuid())
+  key            String    @unique // short code e.g. PAYLE
+  name           String
+  description    String?
+  color          String    @default("blue")
+  role           String? // "Founding Engineer — Agent Experience"
+  status         String    @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED | ARCHIVED
+  mission        String?
+  architecture   String?
+  techStack      String? // newline separated
+  constraints    String?
+  devRules       String?
+  objective      String?
+  objectiveLabel String?
+  milestone      String?
+  milestoneDate  DateTime?
+  coverImage     String?
+  progressOverride Int?
+  githubUrl      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  members    ProjectMember[]
+  tasks      Task[]
+  documents  ProjectDocument[]
+  sessions   AiSession[]
+  prompts    Prompt[]
+  decisions  ProjectDecision[]
+  handoffs   Handoff[]
+  activities Activity[]
+  links      ProjectLink[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  role      String   @default("ENGINEER")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id])
+  userId    String
+  projectId String
+
+  @@unique([userId, projectId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO") // TODO | IN_PROGRESS | BLOCKED | IN_REVIEW | DONE
+  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  order       Int       @default(0)
+  dueDate     DateTime?
+  assigneeId  String?
+  projectId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  createdById String?
+  notes       String?
+
+  documents    TaskDocument[]
+  sessions     TaskSession[]
+  decisions    TaskDecision[]
+  activities   Activity[]
+  promptUsages PromptUsage[]
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  kind        String   @default("MARKDOWN") // MARKDOWN | PDF | TEXT | LINK | IMAGE | OTHER
+  category    String?
+  description String?
+  externalUrl String?
+  filePath    String?
+  fileMime    String?
+  fileSize    Int?
+  content     String?
+  version     Int      @default(1)
+  isLatest    Boolean  @default(true)
+  uploaderId  String?
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  uploader      User?              @relation(fields: [uploaderId], references: [id])
+  versions      DocumentVersion[]  @relation("DocToVersions")
+  projectLinks  ProjectDocument[]
+  taskLinks     TaskDocument[]
+  sessionLinks  SessionDocument[]
+  decisionLinks DecisionDocument[]
+  activity      Activity[]
+}
+
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  version    Int
+  note       String?
+  createdAt  DateTime @default(now())
+  document   Document @relation("DocToVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+}
+
+model AiSession {
+  id           String   @id @default(cuid())
+  agent        String // CLAUDE | CHATGPT | CURSOR | ANTIGRAVITY | GEMINI | OTHER
+  title        String
+  goal         String?
+  prompt       String?
+  summary      String?
+  actions      String? // newline separated
+  filesChanged String? // newline separated
+  decisions    String?
+  problems     String?
+  result       String? // SUCCESS | PARTIAL | FAILED | NEUTRAL
+  nextStep     String?
+  projectRef   String?
+  projectId    String?
+  taskId       String?
+  spentAt      DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  project   Project?        @relation(fields: [projectId], references: [id])
+  taskLinks TaskSession[]
+  documents SessionDocument[]
+}
+
+model TaskSession {
+  id        String    @id @default(cuid())
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  session   AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+
+  @@unique([taskId, sessionId])
+}
+
+model Prompt {
+  id          String   @id @default(cuid())
+  name        String
+  body        String
+  description String?
+  category    String   @default("General")
+  tags        String? // comma separated
+  usageCount  Int      @default(0)
+  createdById String?
+  projectId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project?      @relation(fields: [projectId], references: [id])
+  createdBy User?         @relation(fields: [createdById], references: [id])
+  usages    PromptUsage[]
+}
+
+model PromptUsage {
+  id       String   @id @default(cuid())
+  usedAt   DateTime @default(now())
+  prompt   Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  promptId String
+  task     Task?    @relation(fields: [taskId], references: [id])
+  taskId   String?
+}
+
+model Decision {
+  id            String   @id @default(cuid())
+  title         String
+  context       String?
+  decision      String
+  reason        String?
+  alternatives  String?
+  consequences  String?
+  status        String   @default("ACCEPTED") // PROPOSED | ACCEPTED | SUPERSEDED | REJECTED
+  decidedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  projectLinks  ProjectDecision[]
+  taskLinks     TaskDecision[]
+  documentLinks DecisionDocument[]
+}
+
+model TaskDecision {
+  id         String   @id @default(cuid())
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId     String
+  decision   Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  decisionId String
+
+  @@unique([taskId, decisionId])
+}
+
+model DecisionDocument {
+  id         String   @id @default(cuid())
+  decision   Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  decisionId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  @@unique([decisionId, documentId])
+}
+
+model Handoff {
+  id            String   @id @default(cuid())
+  title         String
+  objective     String?
+  currentTask   String?
+  completed     String? // newline separated
+  inProgress    String?
+  nextSteps     String?
+  blockers      String?
+  decisions     String?
+  filesChanged  String?
+  testStatus    String?
+  openQuestions String?
+  projectId     String
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id])
+  createdBy User?   @relation(fields: [createdById], references: [id])
+}
+
+model Tag {
+  id    String  @id @default(cuid())
+  name  String  @unique
+  color String?
+}
+
+model Activity {
+  id         String   @id @default(cuid())
+  kind       String
+  message    String
+  meta       String?
+  createdAt  DateTime @default(now())
+
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String?
+  task       Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId     String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  documentId String?
+}
+
+model TaskDocument {
+  id         String   @id @default(cuid())
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId     String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  @@unique([taskId, documentId])
+}
+
+model ProjectDocument {
+  id         String   @id @default(cuid())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  @@unique([projectId, documentId])
+}
+
+model ProjectDecision {
+  id         String   @id @default(cuid())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  decision   Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  decisionId String
+
+  @@unique([projectId, decisionId])
+}
+
+model ProjectLink {
+  id        String   @id @default(cuid())
+  label     String
+  url       String
+  kind      String   @default("LINK") // LINK | REPO | DESIGN | SPEC
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+}
+
+model SessionDocument {
+  id         String    @id @default(cuid())
+  session    AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  String
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  @@unique([sessionId, documentId])
+}
