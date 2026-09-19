@@ -6,10 +6,14 @@ import { COLOR_HEX } from "./constants";
 const OWNER_ROLE = "OWNER";
 
 /**
- * Workspace owner, sourced from environment so deployments aren't tied to a
- * hardcoded identity. Falls back to a generic local owner in development.
+ * The acting user: the authenticated session when signed in, otherwise the
+ * workspace owner from env (used by first-run setup before any login exists).
  */
 export async function currentUser() {
+  const { getSessionUser } = await import("./auth");
+  const session = await getSessionUser();
+  if (session) return db.user.findUniqueOrThrow({ where: { id: session.id } });
+
   const email = (process.env.OWNER_EMAIL || "owner@localhost").trim().toLowerCase();
   const name = (process.env.OWNER_NAME || "").trim() || email.split("@")[0]!;
 
