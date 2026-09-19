@@ -10,11 +10,14 @@ export const dynamic = "force-dynamic";
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status } = await searchParams;
-  const tasks = await db.task.findMany({
-    where: status && TASK_STATUSES.includes(status as never) ? { status } : undefined,
-    include: { project: true },
-    orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
-  });
+  const [tasks, projects] = await Promise.all([
+    db.task.findMany({
+      where: status && TASK_STATUSES.includes(status as never) ? { status } : undefined,
+      include: { project: true },
+      orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
+    }),
+    db.project.findMany({ select: { id: true, name: true, key: true }, orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div className="stack">
@@ -23,7 +26,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
           <h1 className="page-title">Tasks</h1>
           <p className="page-sub">{tasks.length} tasks {status ? `· ${TASK_STATUS_LABEL[status] ?? status}` : "· all statuses"}</p>
         </div>
-        <NewTaskForm />
+        <NewTaskForm projects={projects} />
       </div>
 
       <div className="row wrap" style={{ gap: 6 }}>
