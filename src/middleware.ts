@@ -19,6 +19,9 @@ export async function middleware(req: NextRequest) {
   const authed = await hasValidSession(req.cookies.get(SESSION_COOKIE)?.value);
 
   if (!authed && !isPublicPage) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

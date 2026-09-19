@@ -4,7 +4,7 @@ import {
   FolderKanban, Scale, Handshake,
 } from "lucide-react";
 import { dashboardData } from "@/lib/data";
-import { currentUser } from "@/lib/actions";
+import { currentUserOrUnclaimedOwner } from "@/lib/actions";
 import { AGENT_LABEL, agentClass } from "@/lib/constants";
 import { ACTIVITY_ICON } from "@/lib/icons";
 import { cn, dueLabel, relTime, truncate } from "@/utils";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const [{ projects, activeTasks, recentSessions, recentActivity, nextActions, stats }, user] = await Promise.all([
     dashboardData(),
-    currentUser(),
+    currentUserOrUnclaimedOwner(),
   ]);
 
   // Hero: the most active project (most tasks, then most recent), preferring ACTIVE.

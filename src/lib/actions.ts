@@ -2,22 +2,37 @@
 import { db } from "./db";
 import { lines } from "../utils";
 import { COLOR_HEX } from "./constants";
+import { isWorkspaceClaimed } from "./auth";
 
 const OWNER_ROLE = "OWNER";
 
 /**
- * The acting user: the authenticated session when signed in, otherwise the
- * workspace owner from env (used by first-run setup before any login exists).
+ * The acting user: must be an authenticated session. There is no env-owner
+ * fallback — unauthenticated callers get rejected instead of acting as someone.
+ * (First-run onboarding creates the owner via /api/auth/setup, then signs in.)
  */
 export async function currentUser() {
   const { getSessionUser } = await import("./auth");
   const session = await getSessionUser();
+  if (!session) throw new Error("UNAUTHENTICATED");
+  return db.user.findUniqueOrThrow({ where: { id: session.id } });
+}
+
+/**
+ * Owner bootstrap for the first-run dashboard: when the workspace is still
+ * unclaimed (no password/passkey yet) the env-configured owner can be created
+ * so /setup can claim them. Signed-in requests always use the session user.
+ */
+export async function currentUserOrUnclaimedOwner() {
+  const { getSessionUser } = await import("./auth");
+  const session = await getSessionUser();
   if (session) return db.user.findUniqueOrThrow({ where: { id: session.id } });
+
+  // Only when the workspace is NOT yet claimed may we touch the owner record.
+  if (await isWorkspaceClaimed()) throw new Error("UNAUTHENTICATED");
 
   const email = (process.env.OWNER_EMAIL || "owner@localhost").trim().toLowerCase();
   const name = (process.env.OWNER_NAME || "").trim() || email.split("@")[0]!;
-
-  // upsert keeps parallel requests / prerenders from racing on the unique email
   return db.user.upsert({
     where: { email },
     update: {},

@@ -21,14 +21,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
     }
 
-    const owner = await db.user.findFirst({ where: { role: "OWNER" } });
-    if (!owner) {
-      return NextResponse.json({ error: "Workspace owner not found. Visit the site once to initialize it." }, { status: 500 });
-    }
+    // First visitor claims the workspace: create the owner if none exists yet.
+    const owner =
+      (await db.user.findFirst({ where: { role: "OWNER" } })) ??
+      (await db.user.create({
+        data: {
+          email: cleanEmail,
+          name: cleanName || cleanEmail.split("@")[0]!,
+          role: "OWNER",
+        },
+      }));
 
     await db.user.update({
       where: { id: owner.id },
-      data: { email: cleanEmail, name: cleanName || cleanEmail.split("@")[0]!, passwordHash: hashPassword(cleanPassword) },
+      data: {
+        email: cleanEmail,
+        name: cleanName || cleanEmail.split("@")[0]!,
+        passwordHash: hashPassword(cleanPassword),
+      },
     });
 
     await createSession(owner.id);

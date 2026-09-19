@@ -1,5 +1,6 @@
 import { readFile } from "fs/promises";
 import path from "path";
+import { getSessionUserId } from "@/lib/auth";
 
 const MIME: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -14,6 +15,8 @@ const MIME: Record<string, string> = {
 };
 
 export async function GET(_req: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  // Defense in depth: middleware already gates this, but never serve uploads without a session.
+  if (!(await getSessionUserId())) return new Response("Unauthorized", { status: 401 });
   const { path: parts } = await params;
   const rel = parts.join("/");
   if (rel.includes("..")) return new Response("Bad request", { status: 400 });

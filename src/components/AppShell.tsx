@@ -12,7 +12,7 @@ export default function AppShell({ user, children }: { user: SessionUser; childr
     <div className="shell">
       <Sidebar user={user} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="main">
-        <Topbar />
+        <Topbar onMenu={() => setMenuOpen(true)} />
         <main className="content">{children}</main>
       </div>
     </div>

@@ -12,22 +12,27 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Auth pages (login/setup) render before any user exists; the fallback identity
-  // is only cosmetic there. All protected pages get the real session user.
-  let user = { name: "Owner", email: "" };
+  // Signed-in → full app shell (sidebar + topbar + command palette).
+  // No session → bare render: middleware only lets /login and /setup through,
+  // so the shell (and every workspace page) stays hidden until you sign in.
+  let user: { name: string; email: string } | null = null;
   try {
     const u = await getSessionUser();
     if (u) user = { name: u.name, email: u.email };
   } catch {
-    /* database not reachable — render with fallback */
+    /* database not reachable — treat as signed out */
   }
+
   return (
     <html lang="en">
       <body>
-        <AppShell user={user}>
-          {children}
-        </AppShell>
-        <CommandPalette />
+        {user ? (
+          <CommandPalette>
+            <AppShell user={user}>{children}</AppShell>
+          </CommandPalette>
+        ) : (
+          children
+        )}
       </body>
     </html>
   );
