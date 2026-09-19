@@ -24,32 +24,32 @@ model User {
   documents     Document[]
   prompts       Prompt[]
   handoffs      Handoff[]
-  assignedTasks Task[]          @relation("TaskAssignee")
+  assignedTasks Task[]           @relation("TaskAssignee")
   credentials   AuthCredential[]
 }
 
 model Project {
-  id             String    @id @default(cuid())
-  key            String    @unique // short code e.g. PAYLE
-  name           String
-  description    String?
-  color          String    @default("blue")
-  role           String? // "Founding Engineer — Agent Experience"
-  status         String    @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED | ARCHIVED
-  mission        String?
-  architecture   String?
-  techStack      String? // newline separated
-  constraints    String?
-  devRules       String?
-  objective      String?
-  objectiveLabel String?
-  milestone      String?
-  milestoneDate  DateTime?
-  coverImage     String?
+  id               String    @id @default(cuid())
+  key              String    @unique // short code e.g. PAYLE
+  name             String
+  description      String?
+  color            String    @default("blue")
+  role             String? // "Founding Engineer — Agent Experience"
+  status           String    @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED | ARCHIVED
+  mission          String?
+  architecture     String?
+  techStack        String? // newline separated
+  constraints      String?
+  devRules         String?
+  objective        String?
+  objectiveLabel   String?
+  milestone        String?
+  milestoneDate    DateTime?
+  coverImage       String?
   progressOverride Int?
-  githubUrl      String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  githubUrl        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   members    ProjectMember[]
   tasks      Task[]
@@ -119,6 +119,7 @@ model Document {
   updatedAt   DateTime @updatedAt
 
   uploader      User?              @relation(fields: [uploaderId], references: [id])
+  fileBlob      FileBlob?
   versions      DocumentVersion[]  @relation("DocToVersions")
   projectLinks  ProjectDocument[]
   taskLinks     TaskDocument[]
@@ -155,7 +156,7 @@ model AiSession {
   spentAt      DateTime @default(now())
   createdAt    DateTime @default(now())
 
-  project   Project?        @relation(fields: [projectId], references: [id])
+  project   Project?          @relation(fields: [projectId], references: [id])
   taskLinks TaskSession[]
   documents SessionDocument[]
 }
@@ -198,16 +199,16 @@ model PromptUsage {
 }
 
 model Decision {
-  id            String   @id @default(cuid())
-  title         String
-  context       String?
-  decision      String
-  reason        String?
-  alternatives  String?
-  consequences  String?
-  status        String   @default("ACCEPTED") // PROPOSED | ACCEPTED | SUPERSEDED | REJECTED
-  decidedAt     DateTime @default(now())
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  title        String
+  context      String?
+  decision     String
+  reason       String?
+  alternatives String?
+  consequences String?
+  status       String   @default("ACCEPTED") // PROPOSED | ACCEPTED | SUPERSEDED | REJECTED
+  decidedAt    DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   projectLinks  ProjectDecision[]
   taskLinks     TaskDecision[]
@@ -261,27 +262,40 @@ model Tag {
   color String?
 }
 
+// Uploaded file bytes — stored in the database so files survive serverless
+// restarts/redeploys exactly like every other record (no /tmp wipe risk).
+model FileBlob {
+  id        String   @id @default(cuid())
+  bytes     Bytes
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String   @unique
+}
+
 // WebAuthn credentials (passkeys — Touch ID / keychain fingerprints)
 model AuthCredential {
-  id                String   @id // base64url credential ID from the authenticator
-  userId            String
-  publicKey         String // base64url-encoded COSE public key
-  counter           Int      @default(0)
-  deviceType        String   @default("singleDevice")
-  transports        String?  // comma-separated: internal,hybrid,usb,nfc,ble
-  label             String?  // e.g. "Raj's MacBook Pro"
-  createdAt         DateTime @default(now())
-  lastUsedAt        DateTime?
+  id         String    @id // base64url credential ID from the authenticator
+  userId     String
+  publicKey  String // base64url-encoded COSE public key
+  counter    Int       @default(0)
+  deviceType String    @default("singleDevice")
+  transports String? // comma-separated: internal,hybrid,usb,nfc,ble
+  label      String? // e.g. "Raj's MacBook Pro"
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Activity {
-  id         String   @id @default(cuid())
-  kind       String
-  message    String
-  meta       String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  kind      String
+  message   String
+  meta      String?
+  createdAt DateTime @default(now())
 
   user       User?     @relation(fields: [userId], references: [id])
   userId     String?

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Settings, X } from "lucide-react";
 import { NAV } from "@/lib/icons";
 import { cn, initials } from "@/utils";
+import SidebarSignOut from "./SidebarSignOut";
 
 export default function Sidebar({ user, open, onClose }: { user: { name: string; email: string }; open: boolean; onClose: () => void }) {
   const pathname = usePathname();
@@ -48,6 +49,7 @@ export default function Sidebar({ user, open, onClose }: { user: { name: string;
         </nav>
 
         <div className="sidebar-foot">
+          <SidebarSignOut onClose={onClose} />
           <Link href="/settings" className={cn("nav-item", isActive("/settings") && "active")} onClick={onClose}>
             <span className="nav-ico"><Settings size={17} /></span>
             Settings

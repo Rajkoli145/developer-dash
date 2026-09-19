@@ -146,6 +146,10 @@ p { margin: 0; }
 .nav-item.active .nav-count { background: var(--blue-soft); color: var(--blue); }
 
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
+.signout-btn { width: 100%; border: none; background: none; cursor: pointer; font: inherit; text-align: left; }
+.signout-btn:hover { color: var(--red); }
+.signout-btn:hover .nav-ico { color: var(--red); }
+.signout-btn:disabled { opacity: 0.6; cursor: wait; }
 .profile-chip {
   display: flex; align-items: center; gap: 10px; padding: 10px;
   border-radius: var(--r-md); transition: background 0.15s ease;
@@ -192,7 +196,8 @@ p { margin: 0; }
 }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
-.content { padding: 28px 28px 64px; max-width: 1460px; width: 100%; margin: 0 auto; }
+.content { padding: 28px 28px 64px; max-width: 1460px; width: 100%; margin: 0 auto; animation: contentIn 0.35s ease both; }
+@keyframes contentIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* ================= buttons ================= */
 .btn {
@@ -547,12 +552,69 @@ p { margin: 0; }
 .auth-shell {
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  padding: 24px;
-  background:
-    radial-gradient(80% 60% at 50% 0%, rgba(76, 125, 214, 0.08), transparent 60%),
-    var(--bg);
+  grid-template-columns: minmax(340px, 46%) 1fr;
 }
+
+/* Left panel: gradient brand side */
+.auth-side {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 48px;
+  color: #fff;
+  background: linear-gradient(150deg, #1b1822 0%, #2a2433 55%, #171420 100%);
+  animation: fadeIn 0.45s ease;
+}
+.auth-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.auth-blob.b1 {
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(93, 138, 222, 0.55), transparent 65%);
+  top: -120px; right: -80px;
+  animation: blobFloat 14s ease-in-out infinite;
+}
+.auth-blob.b2 {
+  width: 340px; height: 340px;
+  background: radial-gradient(circle, rgba(146, 108, 230, 0.4), transparent 65%);
+  bottom: -90px; left: -70px;
+  animation: blobFloat 17s ease-in-out infinite reverse;
+}
+@keyframes blobFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(24px, -28px) scale(1.07); }
+}
+.auth-side-inner { position: relative; max-width: 420px; }
+.auth-side .auth-brand { color: #fff; margin-bottom: 34px; }
+.auth-side .brand-mark { background: rgba(255, 255, 255, 0.14); box-shadow: none; }
+.auth-brand.light { color: #fff; }
+.auth-side-title {
+  font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15;
+  animation: riseIn 0.5s ease both;
+}
+.auth-side-sub { color: rgba(255, 255, 255, 0.62); font-size: 14px; line-height: 1.55; margin-top: 12px; animation: riseIn 0.5s ease 0.08s both; }
+.auth-feats { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.auth-feats li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13.5px; font-weight: 600; color: rgba(255, 255, 255, 0.85);
+  animation: riseIn 0.5s ease calc(0.15s + var(--i) * 0.07s) both;
+}
+.auth-feats svg { color: #9db9ec; }
+
+/* Right panel: the card floats on a soft tinted field */
+.auth-shell > .auth-card {
+  margin: auto;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 32px;
+}
+
 .auth-card {
   width: min(420px, 100%);
   background: var(--card);
@@ -560,8 +622,24 @@ p { margin: 0; }
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-lg);
   padding: 32px;
-  animation: popIn 0.2s ease;
+  animation: popIn 0.25s ease;
 }
+
+/* Entrance stagger for form fields */
+.stagger { animation: riseIn 0.4s ease calc(var(--i, 0) * 0.08s) both; }
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Fingerprint icon subtle pulse while the button is idle */
+.fp-ico { animation: fpPulse 2.6s ease-in-out infinite; }
+@keyframes fpPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* Success state on the submit button */
+.btn-ok { background: var(--green, #2e9e63) !important; color: #fff !important; }
+.btn-ok:disabled { opacity: 1; }
 .auth-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 22px; }
 .auth-brand .brand-mark { width: 30px; height: 30px; font-size: 13px; border-radius: 9px; }
 .auth-title { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
@@ -598,6 +676,11 @@ p { margin: 0; }
   .form-grid .span-2 { grid-column: span 1; }
   .hero-grid { grid-template-columns: 1fr; }
   .hero-grid > :nth-child(3) { grid-column: auto; }
+
+  /* Auth: stack panels on small screens */
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-side { display: none; }
+  .auth-shell > .auth-card { box-shadow: var(--shadow-lg); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); }
   .stat-row { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 560px) {

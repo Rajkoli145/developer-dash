@@ -28,7 +28,16 @@ export default function NewDocumentForm({
         {trigger}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Add document" wide>
-        <form action={async (fd) => { await createDocument(fd); setOpen(false); router.refresh(); }} className="stack-sm">
+        <form action={async (fd) => {
+          const f = fd.get("file");
+          if (f instanceof File && f.size > 8 * 1024 * 1024) {
+            alert("File is larger than 8 MB. Please choose a smaller file.");
+            return;
+          }
+          await createDocument(fd);
+          setOpen(false);
+          router.refresh();
+        }} className="stack-sm">
           <div className="form-grid">
             {projectId ? (
               <input type="hidden" name="projectId" value={projectId} />
@@ -57,8 +66,8 @@ export default function NewDocumentForm({
 
           {mode === "file" && (
             <div className="field">
-              <label htmlFor="nd-file">File</label>
-              <input id="nd-file" name="file" type="file" className="input" />
+              <label htmlFor="nd-file">File <span className="muted">(max 8 MB)</span></label>
+              <input id="nd-file" name="file" type="file" className="input" accept=".pdf,.md,.txt,.png,.jpg,.jpeg,.gif,.webp,.svg" />
             </div>
           )}
           {mode === "link" && (

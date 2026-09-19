@@ -181,15 +181,9 @@ export async function createDocument(formData: FormData) {
 
   if (file instanceof File && file.size > 0) {
     const bytes = Buffer.from(await file.arrayBuffer());
-    // Serverless platforms (Vercel) only allow writes under /tmp.
-    const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "uploads");
-    filePath = `${Date.now()}-${slug(file.name)}`;
-    const { mkdir, writeFile } = await import("fs/promises");
-    const path = await import("path");
-    const abs = path.join(process.cwd(), uploadRoot, filePath);
-    await mkdir(path.dirname(abs), { recursive: true });
-    await writeFile(abs, bytes);
-    fileMime = file.type || null;
+    // Bytes live in Postgres (FileBlob) — files survive server restarts,
+    // redeploys, and /tmp wipes exactly like every other record.
+    fileMime = file.type || "application/octet-stream";
     fileSize = file.size;
     const ext = file.name.split(".").pop()?.toUpperCase() ?? "";
     if (ext === "PDF") kind = "PDF";
@@ -198,6 +192,24 @@ export async function createDocument(formData: FormData) {
     else if (["PNG", "JPG", "JPEG", "GIF", "WEBP", "SVG"].includes(ext)) kind = "IMAGE";
     else kind = "OTHER";
     content = null;
+
+    const doc = await db.document.create({
+      data: {
+        title,
+        kind,
+        category: String(formData.get("category") || "") || null,
+        description: String(formData.get("description") || "") || null,
+        externalUrl: String(formData.get("externalUrl") || "") || null,
+        content,
+        fileMime,
+        fileSize,
+        uploaderId: user.id,
+        versions: { create: { version: 1, note: "Initial version" } },
+        fileBlob: { create: { bytes, mime: fileMime, size: file.size } },
+      },
+    });
+    await finishDocumentCreate(doc.id, projectId, title, user.id);
+    return;
   }
 
   const doc = await db.document.create({
@@ -227,6 +239,19 @@ export async function createDocument(formData: FormData) {
   });
 }
 
+async function finishDocumentCreate(documentId: string, projectId: string, title: string, userId: string) {
+  if (projectId) {
+    await db.projectDocument.create({ data: { projectId, documentId } });
+  }
+  await logActivity({
+    kind: "document_uploaded",
+    message: `Added document “${title}”`,
+    projectId: projectId || null,
+    documentId,
+    userId,
+  });
+}
+
 export async function attachDocument(formData: FormData) {
   const documentId = String(formData.get("documentId") || "");
   const targetType = String(formData.get("targetType") || "");
@@ -253,14 +278,7 @@ export async function detachDocument(formData: FormData) {
 
 export async function deleteDocument(formData: FormData) {
   const id = String(formData.get("id") || "");
-  const doc = await db.document.findUnique({ where: { id } });
-  if (doc?.filePath) {
-    const { unlink } = await import("fs/promises");
-    const path = await import("path");
-    const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "uploads");
-    const abs = path.isAbsolute(uploadRoot) ? path.join(uploadRoot, doc.filePath) : path.join(process.cwd(), uploadRoot, doc.filePath);
-    await unlink(abs).catch(() => {});
-  }
+  // FileBlob rows cascade-delete with the document (schema onDelete: Cascade).
   await db.document.delete({ where: { id } });
 }
 

@@ -4,7 +4,6 @@ import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { db } from "./db";
 
 const COOKIE = "dc_session";
-const DAY = 60 * 60 * 24;
 
 export type SessionUser = { id: string; email: string; name: string };
 
@@ -32,11 +31,18 @@ export function verifyPassword(password: string, stored: string): boolean {
   return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
+/**
+ * Sessions end when the browser/tab closes: the cookie has no Max-Age (a
+ * "session cookie" the browser discards on exit) and the token itself expires
+ * after 12h as a hard backstop. Next visit always asks for fingerprint/password.
+ */
+const SESSION_TTL_HOURS = 12;
+
 export async function createSession(userId: string) {
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime(`${SESSION_TTL_HOURS}h`)
     .sign(secret());
 
   const jar = await cookies();
@@ -44,7 +50,7 @@ export async function createSession(userId: string) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.VERCEL === "1",
-    maxAge: 30 * DAY,
+    // No maxAge/expires on purpose → browser deletes the cookie when it closes.
     path: "/",
   });
 }
