@@ -4,7 +4,7 @@ A personal project-intelligence workspace for software developers. Keep every pi
 project context, work, documentation, AI-agent activity and progress in one place so you
 can switch between projects, tasks and AI agents without losing context.
 
-Built with **Next.js 15 · TypeScript · React 19 · Prisma · SQLite · Lucide** and hand-rolled
+Built with **Next.js 15 · TypeScript · React 19 · Prisma · PostgreSQL · Lucide** and hand-rolled
 CSS (no UI framework).
 
 ## Features
@@ -30,35 +30,48 @@ CSS (no UI framework).
 
 ## Getting started
 
+You need a PostgreSQL database (local, Neon, Supabase, or Vercel Postgres).
+
 ```bash
 npm install
-cp .env.example .env      # adjust OWNER_EMAIL / OWNER_NAME if you like
-npx prisma db push        # create the SQLite database
+cp .env.example .env
+# set DATABASE_URL=postgresql://… in .env
+npx prisma db push        # create the schema
 npm run dev               # http://localhost:3000
 ```
 
 The workspace starts empty — create your first project and go. Everything you create is
-stored relationally in `DATABASE_URL` (SQLite `prisma/dev.db` by default).
+stored relationally in Postgres via `DATABASE_URL`.
 
-### Configuration (`.env`)
+### Configuration
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `OWNER_EMAIL` | Workspace owner identity (created on first launch) | `owner@localhost` |
 | `OWNER_NAME` | Display name for the owner | derived from email |
-| `DATABASE_URL` | Prisma connection string | `file:./dev.db` |
-| `UPLOAD_DIR` | Where uploaded document files are stored | `uploads` |
+| `DATABASE_URL` | PostgreSQL connection string | — (required) |
+| `UPLOAD_DIR` | Upload directory; on Vercel leave unset (uses `/tmp/uploads`) | `uploads` |
 
-## Production build
+## Deploying to Vercel
 
-```bash
-npm run build
-npm start
-```
+1. **Create a Postgres database** — the fastest options:
+   - [Neon](https://neon.tech) (free tier): create a project, copy the pooled
+     connection string (`postgresql://…?sslmode=require`)
+   - Vercel Marketplace → **Vercel Postgres** or **Neon** integration (creates and
+     links `DATABASE_URL` for you)
+2. **Import the repo on Vercel** (or connect it if already imported).
+3. **Set environment variables** in Project → Settings → Environment Variables:
+   - `DATABASE_URL` — your Postgres connection string
+   - `OWNER_EMAIL` — your email (becomes the workspace owner on first visit)
+   - `OWNER_NAME` — your display name (optional)
+4. **Create the schema once** from your machine:
+   ```bash
+   DATABASE_URL="<your-prod-url>" npx prisma db push
+   ```
+5. Deploy. The first page visit creates the owner user automatically.
 
-> Note: uploaded files and SQLite live on local disk. For serverless/containers, point
-> `DATABASE_URL` at Postgres (schema is Postgres-ready) and back `UPLOAD_DIR` with a
-> mounted volume or object storage.
+> Uploads on serverless go to `/tmp/uploads`, which is ephemeral per invocation —
+> fine for trying it out. For durable file storage, wire up Vercel Blob or S3.
 
 ## Project structure
 

@@ -17,7 +17,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ path: s
   const { path: parts } = await params;
   const rel = parts.join("/");
   if (rel.includes("..")) return new Response("Bad request", { status: 400 });
-  const abs = path.join(process.cwd(), "uploads", rel);
+  // Mirrors the upload root logic in lib/actions.ts (serverless → /tmp).
+  const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "uploads");
+  const abs = path.isAbsolute(uploadRoot)
+    ? path.join(uploadRoot, rel)
+    : path.join(process.cwd(), uploadRoot, rel);
   try {
     const data = await readFile(abs);
     const ext = path.extname(abs).toLowerCase();

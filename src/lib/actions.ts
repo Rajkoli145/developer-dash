@@ -162,7 +162,8 @@ export async function createDocument(formData: FormData) {
 
   if (file instanceof File && file.size > 0) {
     const bytes = Buffer.from(await file.arrayBuffer());
-    const uploadRoot = process.env.UPLOAD_DIR || "uploads";
+    // Serverless platforms (Vercel) only allow writes under /tmp.
+    const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "uploads");
     filePath = `${Date.now()}-${slug(file.name)}`;
     const { mkdir, writeFile } = await import("fs/promises");
     const path = await import("path");
@@ -237,7 +238,8 @@ export async function deleteDocument(formData: FormData) {
   if (doc?.filePath) {
     const { unlink } = await import("fs/promises");
     const path = await import("path");
-    const abs = path.join(process.cwd(), process.env.UPLOAD_DIR || "uploads", doc.filePath);
+    const uploadRoot = process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "uploads");
+    const abs = path.isAbsolute(uploadRoot) ? path.join(uploadRoot, doc.filePath) : path.join(process.cwd(), uploadRoot, doc.filePath);
     await unlink(abs).catch(() => {});
   }
   await db.document.delete({ where: { id } });

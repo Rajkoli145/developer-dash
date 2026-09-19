@@ -1,6 +1,8 @@
 import { createProject } from "@/lib/actions";
 import { PROJECT_COLORS } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 export default function NewProjectPage() {
   return (
     <div className="stack" style={{ maxWidth: 640 }}>

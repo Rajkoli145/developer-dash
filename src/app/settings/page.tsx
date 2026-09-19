@@ -50,9 +50,9 @@ export default async function SettingsPage() {
       <section className="card card-pad">
         <div className="card-head"><h3 className="card-title" style={{ fontSize: 15.5 }}>Data</h3></div>
         <div className="small muted">
-          Data lives in your <span className="filepath">DATABASE_URL</span> (SQLite by default). Uploads are stored under
-          the <span className="filepath">UPLOAD_DIR</span> directory. Owner identity comes from
-          <span className="filepath"> OWNER_EMAIL</span> / <span className="filepath">OWNER_NAME</span> in <span className="filepath">.env</span>.
+          Data lives in your <span className="filepath">DATABASE_URL</span> (PostgreSQL — Neon, Supabase, or Vercel Postgres). Uploads go to
+          the <span className="filepath">UPLOAD_DIR</span> directory (or <span className="filepath">/tmp</span> on serverless). Owner identity comes from
+          <span className="filepath"> OWNER_EMAIL</span> / <span className="filepath">OWNER_NAME</span>.
         </div>
       </section>
     </div>

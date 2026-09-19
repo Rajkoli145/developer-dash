@@ -12,7 +12,15 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const user = await currentUser();
+  // Build-time prerenders (and rare DB outages) fall back to a neutral identity
+  // so the shell still renders; every runtime page uses the real DB user.
+  let user = { name: "Owner", email: "" };
+  try {
+    const u = await currentUser();
+    user = { name: u.name, email: u.email };
+  } catch {
+    /* database not reachable — render with fallback */
+  }
   return (
     <html lang="en">
       <body>

@@ -10,6 +10,8 @@ prisma/dev.db-journal
 prisma/dev.db-wal
 prisma/dev.db-shm
 .data
+*.db
+*.db-journal
 
 # uploads (keep the folder via .gitkeep)
 uploads/*
