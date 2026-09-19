@@ -22,3 +22,4 @@ uploads/*
 .env.local
 .env.*.local
 .freebuff/
+.vercel

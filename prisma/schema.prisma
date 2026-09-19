@@ -11,11 +11,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      String   @default("OWNER") // OWNER | MEMBER
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         String   @default("OWNER") // OWNER | MEMBER
+  passwordHash String? // set during first-time setup; null until claimed
+  createdAt    DateTime @default(now())
 
   projects      ProjectMember[]
   tasks         Task[]
@@ -23,7 +24,8 @@ model User {
   documents     Document[]
   prompts       Prompt[]
   handoffs      Handoff[]
-  assignedTasks Task[] @relation("TaskAssignee")
+  assignedTasks Task[]          @relation("TaskAssignee")
+  credentials   AuthCredential[]
 }
 
 model Project {
@@ -257,6 +259,21 @@ model Tag {
   id    String  @id @default(cuid())
   name  String  @unique
   color String?
+}
+
+// WebAuthn credentials (passkeys — Touch ID / keychain fingerprints)
+model AuthCredential {
+  id                String   @id // base64url credential ID from the authenticator
+  userId            String
+  publicKey         String // base64url-encoded COSE public key
+  counter           Int      @default(0)
+  deviceType        String   @default("singleDevice")
+  transports        String?  // comma-separated: internal,hybrid,usb,nfc,ble
+  label             String?  // e.g. "Raj's MacBook Pro"
+  createdAt         DateTime @default(now())
+  lastUsedAt        DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Activity {

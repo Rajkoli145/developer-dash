@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import CommandPalette from "@/components/CommandPalette";
-import { currentUser } from "@/lib/actions";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,19 +12,19 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Build-time prerenders (and rare DB outages) fall back to a neutral identity
-  // so the shell still renders; every runtime page uses the real DB user.
+  // Auth pages (login/setup) render before any user exists; the fallback identity
+  // is only cosmetic there. All protected pages get the real session user.
   let user = { name: "Owner", email: "" };
   try {
-    const u = await currentUser();
-    user = { name: u.name, email: u.email };
+    const u = await getSessionUser();
+    if (u) user = { name: u.name, email: u.email };
   } catch {
     /* database not reachable — render with fallback */
   }
   return (
     <html lang="en">
       <body>
-        <AppShell user={{ name: user.name, email: user.email }}>
+        <AppShell user={user}>
           {children}
         </AppShell>
         <CommandPalette />

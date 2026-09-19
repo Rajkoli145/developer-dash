@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/actions";
 import { initials } from "@/utils";
+import PasskeyManager from "@/components/PasskeyManager";
+import SignOutButton from "@/components/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ export default async function SettingsPage() {
           <h1 className="page-title">Settings</h1>
           <p className="page-sub">Your workspace at a glance.</p>
         </div>
+        <SignOutButton />
       </div>
 
       <section className="card card-pad">
@@ -38,6 +41,8 @@ export default async function SettingsPage() {
           <MiniStat label="AI Sessions" value={sessionCount} />
         </div>
       </section>
+
+      <PasskeyManager />
 
       <section className="card card-pad">
         <div className="card-head"><h3 className="card-title" style={{ fontSize: 15.5 }}>Shortcuts</h3></div>
